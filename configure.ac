@@ -181,7 +181,8 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <llvm/IR/LLVMContext.h>
 #endif
 ]],[[
-          llvm::Module M("",llvm::getGlobalContext());
+	  llvm::LLVMContext C;
+          llvm::Module M("", C);
           std::string s = M.getDataLayoutStr();
         ]])],
         [AC_DEFINE([LLVM_MODULE_GET_DATA_LAYOUT_STRING],[getDataLayoutStr],
@@ -207,7 +208,8 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <llvm/IR/LLVMContext.h>
 #endif
 ]],[[
-  llvm::Module M("",llvm::getGlobalContext());
+  llvm::LLVMContext C;
+  llvm::Module M("", C));
   std::error_code ec = M.materializeAllPermanently();
 ]])],
            [AC_DEFINE([LLVM_MODULE_MATERIALIZE_ALL_PERMANENTLY_ERRORCODE_BOOL],[1],
@@ -349,10 +351,9 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <llvm/IR/LLVMContext.h>
 #endif
 ]],[[
+  llvm::Context C;
   llvm::SMDiagnostic err;
-  llvm::ParseIR((llvm::MemoryBuffer*)0,
-                err,
-                llvm::getGlobalContext());
+  llvm::ParseIR((llvm::MemoryBuffer*)0, err, C);
 ]])],
         [AC_DEFINE([LLVM_PARSE_IR_MEMBUF_PTR],[1],
          [Define if llvm::ParseIR takes a MemoryBuffer pointer as argument.])
@@ -424,6 +425,7 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 ]],[[
     llvm::Module *mod;
     llvm::SMDiagnostic err;
+    llvm::LLVMContext C;
     llvm::MemoryBuffer *buf =
 #ifdef LLVM_GETMEMBUFFER_RET_PTR
       llvm::MemoryBuffer::getMemBuffer("","",false);
@@ -431,9 +433,9 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
       llvm::MemoryBuffer::getMemBuffer("","",false).release();
 #endif
 #ifdef LLVM_PARSE_IR_MEMBUF_PTR
-    mod = llvm::ParseIR(buf,err,llvm::getGlobalContext());
+    mod = llvm::ParseIR(buf,err, C);
 #else
-    mod = llvm::parseIR(buf->getMemBufferRef(),err,llvm::getGlobalContext()).release();
+    mod = llvm::parseIR(buf->getMemBufferRef(),err, C).release();
 #endif
     delete buf;
     delete mod;
@@ -531,6 +533,7 @@ declare void @llvm.dbg.declare(metadata, metadata) nounwind readnone
 )";
 #endif
   llvm::Module *mod;
+  llvm::LLVMContext C;
   llvm::SMDiagnostic err;
   llvm::MemoryBuffer *buf =
 #ifdef LLVM_GETMEMBUFFER_RET_PTR
@@ -539,9 +542,9 @@ declare void @llvm.dbg.declare(metadata, metadata) nounwind readnone
   llvm::MemoryBuffer::getMemBuffer(src,"",false).release();
 #endif
 #ifdef LLVM_PARSE_IR_MEMBUF_PTR
-  mod = llvm::ParseIR(buf,err,llvm::getGlobalContext());
+  mod = llvm::ParseIR(buf,err, C);
 #else
-  mod = llvm::parseIR(buf->getMemBufferRef(),err,llvm::getGlobalContext()).release();
+  mod = llvm::parseIR(buf->getMemBufferRef(),err,C).release();
 #endif
   if(!mod) return 1;
 ]])],
@@ -717,6 +720,7 @@ define i8* @p(i8* %arg){
 }
 )";
   llvm::Module *mod;
+  llvm::LLVMContext C;
   llvm::SMDiagnostic err;
   llvm::MemoryBuffer *buf =
 #ifdef LLVM_GETMEMBUFFER_RET_PTR
@@ -725,9 +729,9 @@ define i8* @p(i8* %arg){
   llvm::MemoryBuffer::getMemBuffer(src,"",false).release();
 #endif
 #ifdef LLVM_PARSE_IR_MEMBUF_PTR
-  mod = llvm::ParseIR(buf,err,llvm::getGlobalContext());
+  mod = llvm::ParseIR(buf,err, C);
 #else
-  mod = llvm::parseIR(buf->getMemBufferRef(),err,llvm::getGlobalContext()).release();
+  mod = llvm::parseIR(buf->getMemBufferRef(),err,C).release();
 #endif
   if(!mod) return 1;
 ]])],
@@ -777,6 +781,11 @@ if test "x$LLVM_LINKER_LINKINMODULE_PTR_BOOL" != 'xyes'; then
 #include <llvm/Linker.h>
 #elif defined(HAVE_LLVM_LINKER_LINKER_H)
 #include <llvm/Linker/Linker.h>
+#endif
+#if defined(HAVE_LLVM_MODULE_H)
+#include <llvm/Module.h>
+#elif defined(HAVE_LLVM_IR_MODULE_H)
+#include <llvm/IR/Module.h>
 #endif
 ]],[[
   llvm::Linker *lnk = 0;

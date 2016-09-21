@@ -29,7 +29,7 @@ DCTraceBuilder::~DCTraceBuilder()
 {
 }
 
-bool DCTraceBuilder::schedule_reply(int *proc, int *aux, int *alt, bool *dryrun)
+bool DCTraceBuilder::schedule_replay(int *proc, int *aux, int *alt, bool *dryrun)
 {
   /* Are we done with the current Event? */
   if(0 <= prefix_idx &&
@@ -75,6 +75,44 @@ bool DCTraceBuilder::schedule_reply(int *proc, int *aux, int *alt, bool *dryrun)
   }
 }
 
+// schedule a next event to be the next event from thread p
+bool DCTraceBuilder::schedule_thread(int *proc, unsigned p)
+{
+
+  if(threads[p].available && !threads[p].sleeping &&
+     (conf.max_search_depth < 0
+      || threads[p].clock[p] < conf.max_search_depth)) {
+    // increase clock
+    ++threads[p].clock[p];
+    // extend the prefix
+    prefix.push_back(Event(IID<IPid>(IPid(p),threads[p].clock[p]),
+                           threads[p].clock));
+    // set the scheduled thread
+    *proc = p/2;
+
+    return true;
+  }
+
+  return false;
+}
+
+void DCTraceBuilder::squeezeLastEvent()
+{
+    assert(prefix[prefix.size()-1].branch.empty());
+    assert(prefix[prefix.size()-1].wakeup.empty());
+    ++prefix[prefix.size()-2].size;
+    prefix.pop_back();
+    --prefix_idx;
+}
+
+void DCTraceBuilder::mergeInvisibleEvents()
+{
+  if(prefix.size() > 1 &&
+     prefix[prefix.size()-1].iid.get_pid() == prefix[prefix.size()-2].iid.get_pid() &&
+     !prefix[prefix.size()-1].may_conflict && prefix[prefix.size()-1].sleep.empty())
+    squeezeLastEvent();
+}
+
 bool DCTraceBuilder::schedule(int *proc, int *aux, int *alt, bool *dryrun)
 {
   *dryrun = false;
@@ -82,26 +120,16 @@ bool DCTraceBuilder::schedule(int *proc, int *aux, int *alt, bool *dryrun)
   this->dryrun = false;
 
   if(replay){
-    if (schedule_reply(proc, aux, alt, dryrun))
+    if (schedule_replay(proc, aux, alt, dryrun))
       return true;
     // else continue in scheduling,
     // since we have scheduled nothing
   }
 
   assert(!replay);
-  /* Create a new Event */
 
-  /* Should we merge the last two events? */
-  if(prefix.size() > 1 &&
-     prefix[prefix.size()-1].iid.get_pid() == prefix[prefix.size()-2].iid.get_pid() &&
-     !prefix[prefix.size()-1].may_conflict &&
-     prefix[prefix.size()-1].sleep.empty()){
-    assert(prefix[prefix.size()-1].branch.empty());
-    assert(prefix[prefix.size()-1].wakeup.empty());
-    ++prefix[prefix.size()-2].size;
-    prefix.pop_back();
-    --prefix_idx;
-  }
+  /* Merge previous invisible events if needed */
+  mergeInvisibleEvents();
 
   /* Create a new Event */
   ++prefix_idx;
@@ -114,25 +142,19 @@ bool DCTraceBuilder::schedule(int *proc, int *aux, int *alt, bool *dryrun)
    */
   const unsigned sz = threads.size();
   unsigned p;
-  for(p = 1; p < sz; p += 2){ // Loop through auxiliary threads
-    if(threads[p].available && !threads[p].sleeping &&
-       (conf.max_search_depth < 0 || threads[p].clock[p] < conf.max_search_depth)){
-      ++threads[p].clock[p];
-      prefix.push_back(Event(IID<IPid>(IPid(p),threads[p].clock[p]),
-                             threads[p].clock));
-      *proc = p/2;
+
+  // Loop through auxiliary threads
+  for(p = 1; p < sz; p += 2){
+    if (schedule_thread(proc, p)) {
+      // auxiliary thread
       *aux = 0;
       return true;
     }
   }
 
-  for(p = 0; p < sz; p += 2){ // Loop through real threads
-    if(threads[p].available && !threads[p].sleeping &&
-       (conf.max_search_depth < 0 || threads[p].clock[p] < conf.max_search_depth)){
-      ++threads[p].clock[p];
-      prefix.push_back(Event(IID<IPid>(IPid(p),threads[p].clock[p]),
-                             threads[p].clock));
-      *proc = p/2;
+  // Loop through real threads
+  for(p = 0; p < sz; p += 2){
+    if (schedule_thread(proc, p)) {
       *aux = -1;
       return true;
     }
@@ -140,5 +162,4 @@ bool DCTraceBuilder::schedule(int *proc, int *aux, int *alt, bool *dryrun)
 
   return false; // No available threads
 }
-
 

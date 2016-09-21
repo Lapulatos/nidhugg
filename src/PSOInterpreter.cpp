@@ -26,6 +26,14 @@
 #include <llvm/LLVMContext.h>
 #endif
 
+#if (LLVM_VERSION_MAJOR > 3 ||\
+     LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
+#include <llvm/Support/AtomicOrdering.h>
+#define SEQUENTIALLY_CONSISTENT llvm::AtomicOrdering::SequentiallyConsistent
+#else
+#define SEQUENTIALLY_CONSISTENT llvm::SequentiallyConsistent
+#endif
+
 static void SetValue(llvm::Value *V, llvm::GenericValue Val, llvm::ExecutionContext &SF) {
   SF.Values[V] = Val;
 }
@@ -166,22 +174,22 @@ bool PSOInterpreter::isFence(llvm::Instruction &I){
       if(isInlineAsm(CS,&asmstr) && asmstr == "mfence") return true;
     }
   }else if(llvm::isa<llvm::StoreInst>(I)){
-    return static_cast<llvm::StoreInst&>(I).getOrdering() == llvm::SequentiallyConsistent;
+    return static_cast<llvm::StoreInst&>(I).getOrdering() == SEQUENTIALLY_CONSISTENT;
   }else if(llvm::isa<llvm::FenceInst>(I)){
-    return static_cast<llvm::FenceInst&>(I).getOrdering() == llvm::SequentiallyConsistent;
+    return static_cast<llvm::FenceInst&>(I).getOrdering() == SEQUENTIALLY_CONSISTENT;
   }else if(llvm::isa<llvm::AtomicCmpXchgInst>(I)){
 #ifdef LLVM_CMPXCHG_SEPARATE_SUCCESS_FAILURE_ORDERING
     llvm::AtomicOrdering succ = static_cast<llvm::AtomicCmpXchgInst&>(I).getSuccessOrdering();
     llvm::AtomicOrdering fail = static_cast<llvm::AtomicCmpXchgInst&>(I).getFailureOrdering();
-    if(succ != llvm::SequentiallyConsistent || fail != llvm::SequentiallyConsistent){
+    if(succ != SEQUENTIALLY_CONSISTENT || fail != SEQUENTIALLY_CONSISTENT){
 #else
-    if(static_cast<llvm::AtomicCmpXchgInst&>(I).getOrdering() != llvm::SequentiallyConsistent){
+    if(static_cast<llvm::AtomicCmpXchgInst&>(I).getOrdering() != SEQUENTIALLY_CONSISTENT){
 #endif
       Debug::warn("PSOInterpreter::isFence::cmpxchg") << "WARNING: Non-sequentially consistent CMPXCHG instruction interpreted as sequentially consistent.\n";
     }
     return true;
   }else if(llvm::isa<llvm::AtomicRMWInst>(I)){
-    if(static_cast<llvm::AtomicRMWInst&>(I).getOrdering() != llvm::SequentiallyConsistent){
+    if(static_cast<llvm::AtomicRMWInst&>(I).getOrdering() != SEQUENTIALLY_CONSISTENT){
       Debug::warn("PSOInterpreter::isFence::rmw") << "WARNING: Non-sequentially consistent RMW instruction interpreted as sequentially consistent.\n";
     }
     return true;
@@ -288,7 +296,7 @@ void PSOInterpreter::visitStoreInst(llvm::StoreInst &I){
 
   PSOThread &thr = pso_threads[CurrentThread];
 
-  if(I.getOrdering() == llvm::SequentiallyConsistent ||
+  if(I.getOrdering() == SEQUENTIALLY_CONSISTENT ||
      0 <= AtomicFunctionCall){
     /* Atomic store */
     assert(thr.all_buffers_empty());
@@ -319,7 +327,7 @@ void PSOInterpreter::visitStoreInst(llvm::StoreInst &I){
 }
 
 void PSOInterpreter::visitFenceInst(llvm::FenceInst &I){
-  if(I.getOrdering() == llvm::SequentiallyConsistent){
+  if(I.getOrdering() == SEQUENTIALLY_CONSISTENT){
     TB.fence();
   }
 }

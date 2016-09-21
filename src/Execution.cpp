@@ -2605,7 +2605,7 @@ void Interpreter::callPthreadCreate(Function *F,
   Function *F_inner = (Function*)GVTOP(ArgVals[2]);
   std::vector<GenericValue> ArgVals_inner;
   if(F_inner->getArgumentList().size() == 1 &&
-     F_inner->arg_begin()->getType() == Type::getInt8PtrTy(getGlobalContext())){
+     F_inner->arg_begin()->getType() == Type::getInt8PtrTy(F->getParent()->getContext())){
     ArgVals_inner.push_back(ArgVals[3]);
   }else if(F_inner->getArgumentList().size()){
     std::string _err;
@@ -2641,7 +2641,7 @@ void Interpreter::callPthreadJoin(Function *F,
   // Forward return value
   GenericValue *rvPtr = (GenericValue*)GVTOP(ArgVals[1]);
   if(rvPtr){
-    Type *ty = Type::getInt8PtrTy(getGlobalContext())->getPointerTo();
+    Type *ty = Type::getInt8PtrTy(F->getParent()->getContext())->getPointerTo();
     if(!CheckedStoreValueToMemory(Threads[tid].RetVal,rvPtr,ty)) return;
   }
 
@@ -2662,7 +2662,7 @@ void Interpreter::callPthreadExit(Function *F,
                                   const std::vector<GenericValue> &ArgVals){
   TB.fence();
   while(ECStack()->size() > 1) ECStack()->pop_back();
-  popStackAndReturnValueToCaller(Type::getInt8PtrTy(getGlobalContext()),ArgVals[0]);
+  popStackAndReturnValueToCaller(Type::getInt8PtrTy(F->getParent()->getContext()),ArgVals[0]);
 }
 
 void Interpreter::callPthreadMutexInit(Function *F,
@@ -2996,7 +2996,7 @@ void Interpreter::callAssume(Function *F, const std::vector<GenericValue> &ArgVa
         /* We are inside an atomic function call. Remove the top part
          * of the stack corresponding to that call.
          */
-        popStackAndReturnValueToCaller(Type::getVoidTy(getGlobalContext()), GenericValue());
+        popStackAndReturnValueToCaller(Type::getVoidTy(F->getParent()->getContext()), GenericValue());
       }
       return;
     }

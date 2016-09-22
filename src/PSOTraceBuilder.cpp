@@ -19,6 +19,7 @@
 
 #include "Debug.h"
 #include "PSOTraceBuilder.h"
+#include "Event.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -280,7 +281,7 @@ bool PSOTraceBuilder::reset(){
 
   /* Setup the new Event at prefix[i] */
   {
-    Branch br = prefix[i].branch[0];
+    Event::Branch br = prefix[i].branch[0];
 
     /* Find the index of br.pid. */
     int br_idx = 1;
@@ -378,7 +379,7 @@ void PSOTraceBuilder::debug_print() const {
     llvm::dbgs() << "}";
     if(prefix[i].branch.size()){
       llvm::dbgs() << " branch: ";
-      for(Branch b : prefix[i].branch){
+      for(Event::Branch b : prefix[i].branch){
         llvm::dbgs() << threads[b.pid].cpid;
         if(b.alt != 0){
           llvm::dbgs() << "-alt:" << b.alt;
@@ -941,11 +942,11 @@ int PSOTraceBuilder::cond_destroy(const ConstMRef &ml){
 void PSOTraceBuilder::register_alternatives(int alt_count){
   curnode().may_conflict = true;
   for(int i = curnode().alt+1; i < alt_count; ++i){
-    curnode().branch.insert(Branch({curnode().iid.get_pid(),i}));
+    curnode().branch.insert(Event::Branch({curnode().iid.get_pid(),i}));
   }
 }
 
-VecSet<PSOTraceBuilder::IPid> PSOTraceBuilder::sleep_set_at(int i){
+VecSet<IPid> PSOTraceBuilder::sleep_set_at(int i){
   VecSet<IPid> sleep;
   for(int j = 0; j < i; ++j){
     sleep.insert(prefix[j].sleep);
@@ -1002,7 +1003,7 @@ void PSOTraceBuilder::add_branch(int i, int j){
    * candidates[p] is out of bounds, or has the value -1.
    */
   std::vector<int> candidates;
-  Branch cand = {-1,0};
+  Event::Branch cand = {-1,0};
   const VClock<IPid> &iclock = prefix[i].clock;
   for(int k = i+1; k <= j; ++k){
     IPid p = prefix[k].iid.get_pid();

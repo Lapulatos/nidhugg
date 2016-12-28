@@ -284,6 +284,25 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
             [The scope name for AtomicOrdering enumerators])
             AC_MSG_RESULT([yes])])
 
+## Check if AtomicOrdering is a enum class
+AC_MSG_CHECKING([whether AtomicOrdering is a enum class])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#if defined(HAVE_LLVM_INSTRUCTIONS_H)
+#include <llvm/Instructions.h>
+#elif defined(HAVE_LLVM_INSTRUCTIONS_H)
+#include <llvm/IR/Instructions.h>
+#endif
+]],[[
+  llvm::AtomicOrdering o = llvm::SequentiallyConsistent;
+]])],
+           [AC_DEFINE([LLVM_ATOMIC_ORDERING_SCOPE],[llvm],
+            [The scope name for AtomicOrdering enum iterms])
+            AC_MSG_RESULT([no])
+           ],
+           [AC_DEFINE([LLVM_ATOMIC_ORDERING_SCOPE],[llvm::AtomicOrdering],
+            [The scope name for AtomicOrdering enum iterms])
+            AC_MSG_RESULT([yes])])
+
 ## Check if AtomicCmpXchg has separate success and failure orderings
 AC_MSG_CHECKING([for success/failure orderings of llvm::AtomicCmpXchgInst])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
@@ -293,8 +312,11 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <llvm/IR/Instructions.h>
 #endif
 ]],[[
-  llvm::AtomicCmpXchgInst *I = nullptr;
-  I->getSuccessOrdering();
+  llvm::AtomicCmpXchgInst I((llvm::Value*)0,(llvm::Value*)0,(llvm::Value*)0,
+                            (llvm::AtomicOrdering)0,
+                            (llvm::AtomicOrdering)0,
+                            llvm::SynchronizationScope(llvm::CrossThread),
+                            (llvm::Instruction*)0);
 ]])],
            [AC_DEFINE([LLVM_CMPXCHG_SEPARATE_SUCCESS_FAILURE_ORDERING],[1],
             [Define if llvm::AtomicCmpXchgInst has separate orderings for success and failure.])

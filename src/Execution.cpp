@@ -3178,7 +3178,11 @@ void Interpreter::callFunction(Function *F,
   }else if(F->getName().str() == "__assert_fail"){
     callAssertFail(F,ArgVals);
     return;
+  }else if(F->getName().str() == "__VERIFIER_error"){
+    callAssertFail(F,ArgVals);
+    return;
   }
+
 
   assert((ECStack()->empty() || ECStack()->back().Caller.getInstruction() == 0 ||
           ECStack()->back().Caller.arg_size() == ArgVals.size()) &&

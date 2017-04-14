@@ -249,9 +249,7 @@ DPORDriver::Result DPORDriver::run(){
                      << estimate << ")";
       }
     }
-    if((computation_count+1) % 1000 == 0){
-      reparse();
-    }
+
     Trace *t = run_once(*TB);
     bool t_used = false;
     if(t && conf.debug_collect_all_traces){

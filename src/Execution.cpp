@@ -3413,8 +3413,8 @@ void Interpreter::run() {
     }
 
     /* Execute */
-    TB.executing_instruction(&I);
     ++executed_instructions_num;
+    TB.executing_instruction(&I);
     visit(I);
 
     /* Atomic function? */
@@ -3426,6 +3426,7 @@ void Interpreter::run() {
         ExecutionContext &SF = ECStack()->back();  // Current stack frame
         Instruction &I = *SF.CurInst++;         // Increment before execute
         ++executed_instructions_num;
+        TB.executing_instruction(&I);
         visit(I);
       }
       AtomicFunctionCall = -1;

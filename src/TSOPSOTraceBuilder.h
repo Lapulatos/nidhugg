@@ -198,17 +198,11 @@ public:
    */
   virtual void register_alternatives(int alt_count) = 0;
 protected:
-  /* The fixed prefix of events in the current execution. This may be
-   * either the complete sequence of events executed thus far in the
-   * execution, or the events executed followed by the subsequent
-   * events that are determined in advance to be executed.
-   */
-  std::vector<Event> prefix;
-
   /* The index into prefix corresponding to the last event that was
    * scheduled. Has the value -1 when no events have been scheduled.
    */
-  int prefix_idx;
+protected:
+  int prefix_idx = -1;
 
   /* An Access is a pair (tp,ml) representing an access to
    * memory. Accesses come in two varieties:
@@ -338,18 +332,6 @@ protected:
    * -1 if there has been no full memory conflict.
    */
   int last_full_memory_conflict;
-
-  Event &curnode() {
-    assert(0 <= prefix_idx);
-    assert(prefix_idx < int(prefix.size()));
-    return prefix[prefix_idx];
-  };
-
-  const Event &curnode() const {
-    assert(0 <= prefix_idx);
-    assert(prefix_idx < int(prefix.size()));
-    return prefix[prefix_idx];
-  };
 };
 
 #endif

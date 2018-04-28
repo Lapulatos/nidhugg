@@ -140,7 +140,7 @@ bool PSOTraceBuilder::schedule(int *proc, int *aux, int *alt, bool *dryrun){
   }
 
   ++threads[p].clock[p];
-  prefix.push_back(Event(IID<IPid>(IPid(p),threads[p].clock[p]),
+  prefix.push_back(PSOEvent(IID<IPid>(IPid(p),threads[p].clock[p]),
                          threads[p].clock));
   *proc = threads[p].proc;
   return true;
@@ -216,7 +216,7 @@ bool PSOTraceBuilder::is_replaying() const {
 void PSOTraceBuilder::cancel_replay(){
   if(!replay) return;
   replay = false;
-  prefix.resize(prefix_idx+1,Event(IID<IPid>(),VClock<IPid>()));
+  prefix.resize(prefix_idx+1,PSOEvent(IID<IPid>(),VClock<IPid>()));
 }
 
 void PSOTraceBuilder::metadata(const llvm::MDNode *md){
@@ -281,7 +281,7 @@ bool PSOTraceBuilder::reset(){
 
   /* Setup the new Event at prefix[i] */
   {
-    Event::Branch br = prefix[i].branch[0];
+    PSOEvent::Branch br = prefix[i].branch[0];
 
     /* Find the index of br.pid. */
     int br_idx = 1;
@@ -291,7 +291,7 @@ bool PSOTraceBuilder::reset(){
       }
     }
 
-    Event evt(IID<IPid>(br.pid,br_idx),{});
+    PSOEvent evt(IID<IPid>(br.pid,br_idx),{});
 
     evt.alt = br.alt;
     evt.branch = prefix[i].branch;
@@ -342,7 +342,7 @@ static std::string rpad(std::string s, int n){
   return s;
 }
 
-std::string PSOTraceBuilder::iid_string(const Event &evt) const{
+std::string PSOTraceBuilder::iid_string(const PSOEvent &evt) const{
   std::stringstream ss;
   ss << "(" << threads[evt.iid.get_pid()].cpid << "," << evt.iid.get_index();
   if(evt.size > 1){
@@ -379,7 +379,7 @@ void PSOTraceBuilder::debug_print() const {
     llvm::dbgs() << "}";
     if(prefix[i].branch.size()){
       llvm::dbgs() << " branch: ";
-      for(Event::Branch b : prefix[i].branch){
+      for(PSOEvent::Branch b : prefix[i].branch){
         llvm::dbgs() << threads[b.pid].cpid;
         if(b.alt != 0){
           llvm::dbgs() << "-alt:" << b.alt;
@@ -942,7 +942,7 @@ int PSOTraceBuilder::cond_destroy(const ConstMRef &ml){
 void PSOTraceBuilder::register_alternatives(int alt_count){
   curnode().may_conflict = true;
   for(int i = curnode().alt+1; i < alt_count; ++i){
-    curnode().branch.insert(Event::Branch({curnode().iid.get_pid(),i}));
+    curnode().branch.insert(PSOEvent::Branch({curnode().iid.get_pid(),i}));
   }
 }
 
@@ -1003,7 +1003,7 @@ void PSOTraceBuilder::add_branch(int i, int j){
    * candidates[p] is out of bounds, or has the value -1.
    */
   std::vector<int> candidates;
-  Event::Branch cand = {-1,0};
+  PSOEvent::Branch cand = {-1,0};
   const VClock<IPid> &iclock = prefix[i].clock;
   for(int k = i+1; k <= j; ++k){
     IPid p = prefix[k].iid.get_pid();
@@ -1170,7 +1170,7 @@ bool PSOTraceBuilder::has_cycle(IID<IPid> *loc) const{
     }
 
     int next_pc = threads[thread].pc+1;
-    const Event &evt = prefix[threads[thread].pfx_index];
+    const PSOEvent &evt = prefix[threads[thread].pfx_index];
 
     if(!threads[thread].blocked){
       assert(evt.iid.get_pid() == thread_ipid);

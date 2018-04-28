@@ -70,6 +70,25 @@ public:
   virtual void register_alternatives(int alt_count);
   virtual int estimate_trace_count() const;
 protected:
+  /* The fixed prefix of events in the current execution. This may be
+   * either the complete sequence of events executed thus far in the
+   * execution, or the events executed followed by the subsequent
+   * events that are determined in advance to be executed.
+   */
+  std::vector<TSOEvent> prefix;
+
+  TSOEvent &curnode() {
+    assert(0 <= prefix_idx);
+    assert(prefix_idx < int(prefix.size()));
+    return prefix[prefix_idx];
+  };
+
+  const TSOEvent &curnode() const {
+    assert(0 <= prefix_idx);
+    assert(prefix_idx < int(prefix.size()));
+    return prefix[prefix_idx];
+  };
+
   /* A store pending in a store buffer. */
   class PendingStore{
   public:
@@ -149,7 +168,7 @@ protected:
     return aux ? proc*2 : proc*2+1;
   };
 
-  std::string iid_string(const Event &evt) const;
+  std::string iid_string(const TSOEvent &evt) const;
   void add_branch(int i, int j);
   /* Add clocks and branches.
    *

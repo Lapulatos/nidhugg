@@ -94,8 +94,8 @@ bool TSOTraceBuilder::schedule_thread(int *proc, unsigned p)
     // increase clock
     ++threads[p].clock[p];
     // extend the prefix
-    prefix.push_back(Event(IID<IPid>(IPid(p),threads[p].clock[p]),
-                           threads[p].clock));
+    prefix.push_back(TSOEvent(IID<IPid>(IPid(p),threads[p].clock[p]),
+                              threads[p].clock));
     // set the scheduled thread
     *proc = p/2;
 
@@ -202,7 +202,7 @@ bool TSOTraceBuilder::is_replaying() const {
 void TSOTraceBuilder::cancel_replay(){
   if(!replay) return;
   replay = false;
-  prefix.resize(prefix_idx+1,Event(IID<IPid>(),VClock<IPid>()));
+  prefix.resize(prefix_idx+1,TSOEvent(IID<IPid>(),VClock<IPid>()));
 }
 
 void TSOTraceBuilder::metadata(const llvm::MDNode *md){
@@ -270,7 +270,7 @@ bool TSOTraceBuilder::reset(){
 
   /* Setup the new Event at prefix[i] */
   {
-    Event::Branch br = prefix[i].branch[0];
+    TSOEvent::Branch br = prefix[i].branch[0];
 
     /* Find the index of br.pid. */
     int br_idx = 1;
@@ -280,7 +280,7 @@ bool TSOTraceBuilder::reset(){
       }
     }
 
-    Event evt(IID<IPid>(br.pid,br_idx),{});
+    TSOEvent evt(IID<IPid>(br.pid,br_idx),{});
 
     evt.alt = br.alt;
     evt.branch = prefix[i].branch;
@@ -327,7 +327,7 @@ static std::string rpad(std::string s, int n){
   return s;
 }
 
-std::string TSOTraceBuilder::iid_string(const Event &evt) const{
+std::string TSOTraceBuilder::iid_string(const TSOEvent &evt) const{
   std::stringstream ss;
   ss << "(" << threads[evt.iid.get_pid()].cpid << "," << evt.iid.get_index();
   if(evt.size > 1){
@@ -364,7 +364,7 @@ void TSOTraceBuilder::debug_print() const {
     llvm::dbgs() << "}";
     if(prefix[i].branch.size()){
       llvm::dbgs() << " branch: ";
-      for(Event::Branch b : prefix[i].branch){
+      for(TSOEvent::Branch b : prefix[i].branch){
         llvm::dbgs() << threads[b.pid].cpid;
         if(b.alt != 0){
           llvm::dbgs() << "-alt:" << b.alt;
@@ -908,7 +908,7 @@ int TSOTraceBuilder::cond_destroy(const ConstMRef &ml){
 void TSOTraceBuilder::register_alternatives(int alt_count){
   curnode().may_conflict = true;
   for(int i = curnode().alt+1; i < alt_count; ++i){
-    curnode().branch.insert(Event::Branch({curnode().iid.get_pid(),i}));
+    curnode().branch.insert(TSOEvent::Branch({curnode().iid.get_pid(),i}));
   }
 }
 
@@ -969,7 +969,7 @@ void TSOTraceBuilder::add_branch(int i, int j){
    * candidates[p] is out of bounds, or has the value -1.
    */
   std::vector<int> candidates;
-  Event::Branch cand = {-1,0};
+  TSOEvent::Branch cand = {-1,0};
   const VClock<IPid> &iclock = prefix[i].clock;
   for(int k = i+1; k <= j; ++k){
     IPid p = prefix[k].iid.get_pid();
@@ -1131,7 +1131,7 @@ bool TSOTraceBuilder::has_cycle(IID<IPid> *loc) const{
     }
 
     int next_pc = procs[proc].pc+1;
-    const Event &evt = prefix[procs[proc].pfx_index];
+    const TSOEvent &evt = prefix[procs[proc].pfx_index];
 
     if(!procs[proc].blocked){
       assert(evt.iid.get_pid() == 2*proc);

@@ -23,6 +23,7 @@ unittest_SOURCES = \
   Unroll_test.cpp \
   VClock_CPid_test.cpp \
   VClock_int_test.cpp \
+  2SAT_test.cpp \
   unittest.cpp
 unittest_LDADD=@BOOST_UNIT_TEST_FRAMEWORK_LIB@ ../src/libnidhugg.a
 unittest_CPPFLAGS=-I../src

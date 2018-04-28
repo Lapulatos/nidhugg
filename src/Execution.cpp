@@ -3410,6 +3410,7 @@ void Interpreter::run() {
     }
 
     /* Execute */
+    TB.executing_instruction(&I);
     visit(I);
 
     /* Atomic function? */

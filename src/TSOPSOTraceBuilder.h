@@ -197,6 +197,9 @@ public:
    * number of ways is given in alt_count.
    */
   virtual void register_alternatives(int alt_count) = 0;
+
+  /* Tell the builder what instruction is being executed */
+  virtual void executing_instruction(const llvm::Instruction *Instr) {}
 protected:
   /* The index into prefix corresponding to the last event that was
    * scheduled. Has the value -1 when no events have been scheduled.

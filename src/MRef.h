@@ -136,6 +136,14 @@ public:
   bool operator>(const ConstMRef &ml) const { return ref > ml.ref || (ref == ml.ref && size > ml.size); };
   bool operator>=(const ConstMRef &ml) const { return ref >=ml.ref && (ref != ml.ref || size >= ml.size); };
 
+  // assume the bytes overlap
+  ConstMRef intersect_overlapping(const ConstMRef& ml) const {
+      if (ref > ml.ref)
+        return ConstMRef(ref, std::min((size_t)size, (size_t)(ml.size - ((const char *)ref - (const char *)ml.ref))));
+      else
+        return ConstMRef(ml.ref, std::min((size_t)ml.size, (size_t)(size - ((const char *)ml.ref - (const char *)ref))));
+  }
+
   MRef::const_iterator begin() const { return MRef::const_iterator(ref,size,0); };
   MRef::const_iterator end() const { return MRef::const_iterator(ref,size,size); };
 };

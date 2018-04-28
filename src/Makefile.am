@@ -31,10 +31,18 @@ libnidhugg_a_SOURCES = \
   TraceBuilder.cpp TraceBuilder.h \
   Transform.cpp Transform.h \
   TSOInterpreter.cpp TSOInterpreter.h \
+  DCInterpreter.cpp DCInterpreter.h \
   TSOPSOTraceBuilder.h \
   TSOTraceBuilder.cpp TSOTraceBuilder.h \
   DCTraceBuilder.cpp DCTraceBuilder.h \
   VClock.cpp VClock.h VClock.tcc \
+  Basis.h Basis.cpp \
+  Annotations.h Annotations.cpp \
+  AnnotatedTrace.h \
+  2SAT.h 2SAT.cpp \
+  HappensAfterGraph.h HappensAfterGraph.cpp \
+  HappensAfterGraphVclock.h HappensAfterGraphVclock.cpp \
+  HappensExactlyBefore.h HappensExactlyBefore.cpp \
   vecset.h vecset.tcc
 libnidhugg_a_CXXFLAGS = -fno-rtti
 

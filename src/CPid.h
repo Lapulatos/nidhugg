@@ -49,6 +49,10 @@ public:
   CPid(const CPid&) = default;
   CPid &operator=(const CPid&) = default;
 
+  /* move constructors and operators */
+  CPid(CPid&&) = default;
+  CPid &operator=(CPid&&) = default;
+
   /* Returns the CPid <p0.....pn.pn1> where this CPid is
    * <p0.....pn>. */
   CPid spawn(int pn1) const;

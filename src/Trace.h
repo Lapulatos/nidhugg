@@ -29,6 +29,7 @@
 
 #include "CPid.h"
 #include "IID.h"
+#include "Event.h"
 
 #include <string>
 #include <vector>
@@ -144,6 +145,9 @@ public:
    * This object takes ownership of errors.
    */
   Trace(const std::vector<Error*> &errors, bool blocked = false);
+  Trace(Trace&& oth)
+    : errors(std::move(oth.errors)), blocked(oth.blocked) {}
+
   virtual ~Trace();
   Trace(const Trace&) = delete;
   Trace &operator=(const Trace&) = delete;
@@ -217,6 +221,5 @@ protected:
   std::vector<IID<CPid> > computation;
   std::vector<const llvm::MDNode*> computation_md;
 };
-
 
 #endif

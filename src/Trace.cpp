@@ -18,6 +18,7 @@
  */
 
 #include "Trace.h"
+#include "Event.h"
 
 #include <fstream>
 #include <locale>
@@ -327,3 +328,4 @@ std::string Trace::basename(const std::string &fname){
 bool Trace::is_absolute_path(const std::string &fname){
   return fname.size() && fname.front() == '/';
 }
+

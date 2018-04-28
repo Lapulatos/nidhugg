@@ -118,6 +118,10 @@ protected:
   public:
     Thread(const CPid &cpid, const VClock<IPid> &clk)
       : cpid(cpid), available(true), clock(clk), sleeping(false), sleep_full_memory_conflict(false) {};
+
+    Thread(Thread&& oth) = default;
+    Thread& operator=(Thread&& oth) = default;
+
     CPid cpid;
     /* Is the thread available for scheduling? */
     bool available;

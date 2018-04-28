@@ -89,10 +89,6 @@ int main(int argc, char *argv[]){
       }
     }
   }
-  llvm::cl::opt<std::string>
-    input_file(llvm::cl::desc("<input bitcode or assembly>"),
-               llvm::cl::Positional,
-               llvm::cl::init("-"));
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
   bool errors_detected = false;

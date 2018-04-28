@@ -48,7 +48,8 @@ cl_memory_model(llvm::cl::NotHidden, llvm::cl::init(Configuration::MM_UNDEF),
                                  clEnumValN(Configuration::ARM,"arm","The ARM model"),
                                  clEnumValN(Configuration::POWER,"power","The POWER model"),
                                  clEnumValN(Configuration::PSO,"pso","Partial Store Order"),
-                                 clEnumValN(Configuration::TSO,"tso","Total Store Order")
+                                 clEnumValN(Configuration::TSO,"tso","Total Store Order"),
+                                 clEnumValN(Configuration::DC,"dc","Data-centric DPOR with Sequential Consistency")
 #ifdef LLVM_CL_VALUES_USES_SENTINEL
                                 ,clEnumValEnd
 #endif
@@ -88,7 +89,7 @@ const std::set<std::string> &Configuration::commandline_opts(){
     "malloc-may-fail",
     "disable-mutex-init-requirement",
     "max-search-depth",
-    "sc","tso","pso","power","arm",
+    "sc","tso","pso", "dc", "power","arm",
     "robustness",
     "no-spin-assume",
     "unroll",
@@ -174,6 +175,7 @@ void Configuration::check_commandline(){
   {
     std::string mm;
     if(cl_memory_model == Configuration::SC) mm = "SC";
+    if(cl_memory_model == Configuration::DC) mm = "SC";
     if(cl_memory_model == Configuration::TSO) mm = "TSO";
     if(cl_memory_model == Configuration::PSO) mm = "PSO";
     if(cl_memory_model == Configuration::POWER) mm = "POWER";

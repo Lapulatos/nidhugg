@@ -30,6 +30,7 @@
 #include "StrModule.h"
 #include "TSOInterpreter.h"
 #include "TSOTraceBuilder.h"
+#include "DCTraceBuilder.h"
 
 #include <fstream>
 #include <stdexcept>
@@ -114,6 +115,9 @@ llvm::ExecutionEngine *DPORDriver::create_execution_engine(TraceBuilder &TB, con
     break;
   case Configuration::ARM: case Configuration::POWER:
     EE = POWERInterpreter::create(mod,static_cast<POWERARMTraceBuilder&>(TB),conf,&ErrorMsg);
+    break;
+  case Configuration::DC:
+    EE = llvm::Interpreter::create(mod,static_cast<DCTraceBuilder&>(TB),conf,&ErrorMsg);
     break;
   case Configuration::MM_UNDEF:
     throw std::logic_error("DPORDriver: No memory model is specified.");
@@ -207,6 +211,9 @@ DPORDriver::Result DPORDriver::run(){
     break;
   case Configuration::POWER:
     TB = new POWERTraceBuilder(conf);
+    break;
+  case Configuration::DC:
+    TB = new DCTraceBuilder(conf);
     break;
   case Configuration::MM_UNDEF:
     throw std::logic_error("DPORDriver: No memory model is specified.");

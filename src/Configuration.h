@@ -40,7 +40,8 @@ public:
     ARM,
     POWER,
     PSO,
-    TSO
+    TSO,
+    DC // data centric
   };
   /* Assign default values to all configuration parameters. */
   Configuration(){

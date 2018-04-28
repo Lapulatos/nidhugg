@@ -129,6 +129,11 @@ CPidSystem::CPidSystem(){
   identifiers[CPid()] = 0;
 }
 
+CPid CPidSystem::dry_spawn(const CPid &c){
+  int c_id = identifiers[c];
+  return c.spawn(real_children[c_id].size());
+}
+
 CPid CPidSystem::spawn(const CPid &c){
   int c_id = identifiers[c];
   CPid c2 = c.spawn(real_children[c_id].size());

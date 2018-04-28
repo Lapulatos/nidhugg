@@ -128,6 +128,13 @@ public:
    * Pre: c is in this set.
    */
   CPid new_aux(const CPid &c);
+  /* Spawn a new (meaning not in this set) real process child for c,
+   * but DO NOT add it to this set. Only find out what the cpid
+   * would be and return it.
+   *
+   * Pre: c is in this set.
+   */
+  CPid dry_spawn(const CPid &c);
 private:
   /* Each CPid in the set is identified by a natural number: its index
    * in the sequence of CPids in creation order. Each CPid with

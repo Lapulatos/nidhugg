@@ -33,6 +33,7 @@ libnidhugg_a_SOURCES = \
   TSOInterpreter.cpp TSOInterpreter.h \
   TSOPSOTraceBuilder.h \
   TSOTraceBuilder.cpp TSOTraceBuilder.h \
+  DCTraceBuilder.cpp DCTraceBuilder.h \
   VClock.cpp VClock.h VClock.tcc \
   vecset.h vecset.tcc
 libnidhugg_a_CXXFLAGS = -fno-rtti

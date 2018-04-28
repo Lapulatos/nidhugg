@@ -200,7 +200,14 @@ public:
 
   /* Tell the builder what instruction is being executed */
   virtual void executing_instruction(const llvm::Instruction *Instr) {}
-protected:
+
+  /* give a clue to the scheduler what to schedule next
+   * - may be ignored by the scheduler, if the scheduler has some
+   * better plan (it is only a clue). The only parameter is
+   * the index of the thread.
+   */
+  virtual void schedule_next(unsigned /*idx*/) {}
+
   /* The index into prefix corresponding to the last event that was
    * scheduled. Has the value -1 when no events have been scheduled.
    */

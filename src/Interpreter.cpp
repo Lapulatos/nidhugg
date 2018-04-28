@@ -108,6 +108,7 @@ Interpreter::Interpreter(Module *M, TSOPSOTraceBuilder &TB,
 #endif
     TD(M), TB(TB), conf(C) {
 
+  Threads.reserve(4); // reserve some space for threads
   Threads.push_back(Thread());
   Threads.back().cpid = CPid();
   CurrentThread = 0;

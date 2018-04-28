@@ -25,6 +25,7 @@
 #include <stdexcept>
 
 TSOTraceBuilder::TSOTraceBuilder(const Configuration &conf) : TSOPSOTraceBuilder(conf) {
+  threads.reserve(8); // reserve some memory for threads
   threads.push_back(Thread(CPid(),{}));
   threads.push_back(Thread(CPS.new_aux(CPid()),{}));
   threads[1].available = false; // Store buffer is empty.

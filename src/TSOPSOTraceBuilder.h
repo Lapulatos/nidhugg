@@ -246,6 +246,7 @@ protected:
     Mutex(int lacc) : last_access(lacc), last_lock(-1) {};
     int last_access;
     int last_lock;
+    bool locked{false};
   };
   /* A map containing all pthread mutex objects in the current
    * execution. The key is the position in memory of the actual

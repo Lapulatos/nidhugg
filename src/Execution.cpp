@@ -77,6 +77,9 @@
 #include <llvm/Support/MathExtras.h>
 #include <algorithm>
 #include <cmath>
+
+uint64_t executed_instructions_num = 0;
+
 using namespace llvm;
 
 //===----------------------------------------------------------------------===//
@@ -3411,6 +3414,7 @@ void Interpreter::run() {
 
     /* Execute */
     TB.executing_instruction(&I);
+    ++executed_instructions_num;
     visit(I);
 
     /* Atomic function? */
@@ -3421,6 +3425,7 @@ void Interpreter::run() {
       while(AtomicFunctionCall < int(ECStack()->size())){
         ExecutionContext &SF = ECStack()->back();  // Current stack frame
         Instruction &I = *SF.CurInst++;         // Increment before execute
+        ++executed_instructions_num;
         visit(I);
       }
       AtomicFunctionCall = -1;

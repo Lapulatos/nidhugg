@@ -97,6 +97,8 @@ public:
   /* Explore the traces of the given module, and return the result.
    */
   Result run();
+
+  static llvm::ExecutionEngine *create_execution_engine(llvm::Module *m, TraceBuilder &TB, const Configuration &conf);
 private:
   /* Configuration */
   const Configuration &conf;

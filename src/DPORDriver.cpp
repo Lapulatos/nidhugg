@@ -29,6 +29,7 @@
 #include "SigSegvHandler.h"
 #include "StrModule.h"
 #include "TSOInterpreter.h"
+#include "DCInterpreter.h"
 #include "TSOTraceBuilder.h"
 #include "DCTraceBuilder.h"
 
@@ -100,7 +101,7 @@ void DPORDriver::reparse(){
   }
 }
 
-llvm::ExecutionEngine *DPORDriver::create_execution_engine(TraceBuilder &TB, const Configuration &conf) const {
+llvm::ExecutionEngine *DPORDriver::create_execution_engine(llvm::Module *mod, TraceBuilder &TB, const Configuration &conf) {
   std::string ErrorMsg;
   llvm::ExecutionEngine *EE = 0;
   switch(conf.memory_model){
@@ -117,7 +118,7 @@ llvm::ExecutionEngine *DPORDriver::create_execution_engine(TraceBuilder &TB, con
     EE = POWERInterpreter::create(mod,static_cast<POWERARMTraceBuilder&>(TB),conf,&ErrorMsg);
     break;
   case Configuration::DC:
-    EE = llvm::Interpreter::create(mod,static_cast<DCTraceBuilder&>(TB),conf,&ErrorMsg);
+    EE = DCInterpreter::create(mod,static_cast<DCTraceBuilder&>(TB),conf,&ErrorMsg);
     break;
   case Configuration::MM_UNDEF:
     throw std::logic_error("DPORDriver: No memory model is specified.");
@@ -150,6 +151,10 @@ llvm::ExecutionEngine *DPORDriver::create_execution_engine(TraceBuilder &TB, con
   (void)EE->getPointerToFunction(EntryFn);
 
   return EE;
+}
+
+llvm::ExecutionEngine *DPORDriver::create_execution_engine(TraceBuilder &TB, const Configuration &conf) const {
+  return DPORDriver::create_execution_engine(mod, TB, conf);
 }
 
 Trace *DPORDriver::run_once(TraceBuilder &TB) const{
@@ -213,7 +218,7 @@ DPORDriver::Result DPORDriver::run(){
     TB = new POWERTraceBuilder(conf);
     break;
   case Configuration::DC:
-    TB = new DCTraceBuilder(conf);
+    TB = new DCTraceBuilder(conf, mod);
     break;
   case Configuration::MM_UNDEF:
     throw std::logic_error("DPORDriver: No memory model is specified.");
@@ -272,6 +277,10 @@ DPORDriver::Result DPORDriver::run(){
       estimate = TB->estimate_trace_count();
     }
   }while(TB->reset());
+
+  if(!res.error_trace && TB->has_error()){
+    res.error_trace = TB->get_trace();
+  }
 
   if(conf.print_progress){
     llvm::dbgs() << "\n";

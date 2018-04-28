@@ -56,6 +56,8 @@ public:
   VClock(const std::initializer_list<std::pair<DOM,int> > &il);
   virtual ~VClock();
   VClock &operator=(const VClock<DOM> &vc);
+  VClock(VClock&& oth) = default;
+  VClock& operator=(VClock&& oth) = default;
   /* A vector clock v such that the clock of d in v takes the value
    * max((*this)[d],vc[d]) for all d.
    */

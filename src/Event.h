@@ -31,6 +31,8 @@
 
 #include "VClock.h"
 #include "vecset.h"
+#include "CPid.h"
+#include "MRef.h"
 
 /* An identifier for a thread. An index into this->threads.
  *
@@ -39,7 +41,6 @@
  */
 typedef int IPid;
 
-
 /* Information about a (short) sequence of consecutive events by the
  * same thread. At most one event in the sequence may have conflicts
  * with other events, and if the sequence has a conflicting event,
@@ -47,11 +48,33 @@ typedef int IPid;
  */
 class Event{
 public:
-  Event(const IID<IPid> &iid,
-        const VClock<IPid> &clk)
-    : iid(iid), origin_iid(iid), size(1), alt(0), md(0), clock(clk),
-      may_conflict(false), sleep_branch_trace_count(0) {};
+  Event(const IID<IPid> &iid)
+    : iid(iid), size(1), md(0), may_conflict(false)
+      {
+        assert(iid.get_pid() >= 0);
+      }
 
+  /* The identifier for the first event in this event sequence. */
+  IID<IPid> iid;
+  /* The number of events in this sequence. */
+  int size;
+  /* Metadata corresponding to the first event in this sequence. */
+  const llvm::MDNode *md;
+  /* Is it possible for any event in this sequence to have a
+   * conflict with another event?
+   */
+  bool may_conflict;
+};
+
+class TSOEvent : public Event {
+public:
+  TSOEvent(const IID<IPid> &iid,
+           const VClock<IPid> &clk)
+    : Event(iid), origin_iid(iid), alt(0), clock(clk),
+      sleep_branch_trace_count(0)
+      {
+        assert(iid.get_pid() >= 0);
+      }
   /* A Branch object is a pair of an IPid p and an alternative index
    * (see Event::alt below) i. It will be tagged on an event in the
    * execution to indicate that if instead of that event, p is allowed
@@ -69,16 +92,12 @@ public:
       return pid == b.pid && alt == b.alt;
     };
   };
-
-  /* The identifier for the first event in this event sequence. */
-  IID<IPid> iid;
   /* The IID of the program instruction which is the origin of this
    * event. For updates, this is the IID of the corresponding store
    * instruction. For other instructions origin_iid == iid.
    */
   IID<IPid> origin_iid;
-  /* The number of events in this sequence. */
-  int size;
+
   /* Some instructions may execute in several alternative ways
    * nondeterministically. (E.g. malloc may succeed or fail
    * nondeterministically if Configuration::malloy_may_fail is set.)
@@ -88,14 +107,8 @@ public:
    * assumed to run their default execution alternative.
    */
   int alt;
-  /* Metadata corresponding to the first event in this sequence. */
-  const llvm::MDNode *md;
   /* The clock of the first event in this sequence. */
   VClock<IPid> clock;
-  /* Is it possible for any event in this sequence to have a
-   * conflict with another event?
-   */
-  bool may_conflict;
   /* Different, yet untried, branches that should be attempted from
    * this position in prefix.
    */
@@ -116,5 +129,61 @@ public:
    */
   int sleep_branch_trace_count;
 };
+
+typedef TSOEvent PSOEvent;
+
+class DCEvent : public Event {
+public:
+
+  DCEvent(const IID<IPid> &iid)
+    : Event(iid), cpid(), childs_cpid(), instruction(0),
+      order(0), ml(0,1) {}
+  DCEvent(const IID<IPid> &iid,
+          const CPid& cpid)
+    : Event(iid), cpid(cpid), childs_cpid(), instruction(0),
+      order(0), ml(0,1) {}
+
+  DCEvent(const IID<IPid> &iid,
+          const CPid& cpid, unsigned id)
+    : Event(iid), cpid(cpid), childs_cpid(), instruction(0),
+      order(0), ml(0,1), id(id) {}
+
+
+
+  /* A complex identifier of the thread that executed this event */
+  CPid cpid;
+  /* CPid of the process that this event spawned (this event is
+     pthread_create) or joined (this event is pthread_join) */
+  CPid childs_cpid;
+  /* an origin instruction */
+  const llvm::Instruction *instruction;
+  /* order of the instruction in the thread (how many instructions
+   * have been executed before */
+  unsigned order;
+  /* memory location modified/read by this event */
+  ConstMRef ml;
+
+  // return a copy of this event without any computed information
+  // contained in it -- that is copy only the basic attributes (iid, size,...)
+  // but do not copy the branches, alts, etc..
+  DCEvent blank_copy() const
+  {
+    DCEvent tmp(iid);
+
+    tmp.size = size;
+    tmp.instruction = instruction;
+    tmp.order = order;
+    tmp.cpid = cpid;
+
+    return tmp;
+  }
+
+  // id of the event (index into the prefix)
+  unsigned id;
+
+  void dump() const;
+};
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& out, const DCEvent& ev);
 
 #endif

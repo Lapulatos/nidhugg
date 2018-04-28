@@ -100,4 +100,43 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const IID<Pid_t> &iid){
   return os << iid.to_string();
 }
 
+// IID with index also parametrized
+template<typename Pid_t, typename Idx_t>
+class IID2 {
+public:
+  /* Create the null IID. */
+  IID2() : idx() {};
+  /* Create the IID (p,i). */
+  IID2(const Pid_t &p, Idx_t i) : pid(p), idx(i) { valid(); };
+  IID2(const IID2&) = default;
+  IID2 &operator=(const IID2&) = default;
+
+  const Pid_t &get_pid() const { return pid; };
+  Idx_t get_index() const { return idx; };
+
+  bool valid() const { return idx != 0; };
+  bool is_null() const { return idx == 0; };
+
+  /*
+   * The comparison operators implement a total order over IIDs.
+   */
+  bool operator==(const IID2 &iid) const {
+    return (idx == 0 && iid.idx == 0) ||
+      (idx == iid.idx && pid == iid.pid);
+  };
+  bool operator!=(const IID2 &iid) const { return !((*this) == iid); };
+  bool operator<(const IID2 &iid) const {
+    return (pid < iid.pid || (pid == iid.pid && idx < iid.idx));
+  };
+
+  bool operator<=(const IID2 &iid) const { return (*this) < iid || (*this) == iid; };
+  bool operator>(const IID2 &iid) const { return iid < (*this); };
+  bool operator>=(const IID2 &iid) const { return iid <= (*this); };
+
+private:
+  /* This IID is (pid,idx) */
+  Pid_t pid;
+  Idx_t idx;
+};
+
 #endif

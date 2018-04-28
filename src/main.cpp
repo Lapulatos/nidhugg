@@ -105,9 +105,12 @@ int main(int argc, char *argv[]){
         DPORDriver::parseIRFile(cl_input_file,conf);
 
       DPORDriver::Result res = driver->run();
+      extern uint64_t executed_instructions_num;
       std::cout << "Trace count: " << res.trace_count
                 << " (also " << res.sleepset_blocked_trace_count
-                << " sleepset blocked)" << std::endl;
+                << " sleepset blocked),"
+                << " totally executed " << executed_instructions_num
+                << " instructions" << std::endl;
       if(res.has_errors()){
         errors_detected = true;
         std::cout << "\n Error detected:\n"

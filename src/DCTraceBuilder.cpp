@@ -250,22 +250,6 @@ bool DCTraceBuilder::addPastCone(const PositiveAnnotation& past_annot,
                                  PositiveAnnotation& annot,
                                  const NegativeAnnotation& negative_annotation)
 {
-
-  // if the negative annotation forbids all rw pairs from the past cone,
-  // then we can skip this mutation
-  //if (negative_annotation.forbids(annot, past_annot)) {
-  //  assert(!past_annot.empty());
-  //  ++blocked_in_mutation;
-  //  return false;
-  //}
-
-  // the negative annotation forbids SOME annotation from the past cone?
-  //if (negative_annotation.forbidsSome(annot, past_annot)) {
-  //  assert(!past_annot.empty());
-  //  ++blocked_in_mutation;
-  //  return false;
-  //}
-
   for (auto& annot_pair : past_annot) {
     // check whether we already have an annotation for the write
     // annot_pair.first. If so, it must be the same (compatible),
@@ -348,72 +332,6 @@ static NegativeAnnotation pruneNegativeAnnotation(const PositiveAnnotation& anno
     return ret;
 }
 
-/*
-void DCTraceBuilder::mergeTraces(AnnotatedTrace& trace,
-                                 AnnotatedTrace& trace2,
-                                 const PositiveAnnotation& annot) {
-    ++merged_traces;
-    // for now we only merge unmerged traces
-    assert(trace.merged_pairs.size() == 0);
-    assert(trace2.merged_pairs.size() == 0);
-
-    // record which pairs we merged
-    trace.merged_pairs.emplace_back(trace.last_annotated_read,
-                                    *trace.positive_annotation.get(trace.last_annotated_read));
-    trace.merged_pairs.emplace_back(trace2.last_annotated_read,
-                                    *trace2.positive_annotation.get(trace2.last_annotated_read));
-
-    // adjust the annotations
-    trace.positive_annotation.intersect(annot);
-}
-
-bool DCTraceBuilder::addMergedAnnotation(AnnotatedTrace& trace, HappensAfterGraph& currentPO,
-                                         PositiveAnnotation& positive_annotation,
-                                         const DCEvent& ev, const DCEvent& wr_ev) {
-  if (trace.merged_pairs.size() != 0) {
-      assert(trace.merged_pairs.size() == 2);
-      if (trace.merged_pairs[0].first == ev &&
-          trace.merged_pairs[0].second != wr_ev) {
-
-          if (!addMutation(positive_annotation,
-              trace.merged_pairs[1].first, trace.merged_pairs[1].second)) {
-            return false;
-          }
-
-          // get the past cone of the events
-          auto past_annot
-            = currentPO.getPastConeAnnotation(positive_annotation,
-                                              {&trace.merged_pairs[1].first,
-                                               &trace.merged_pairs[1].second});
-          if (!addPastCone(past_annot, positive_annotation,
-                           trace.negative_annotation)) {
-            return false;
-          }
-      } else if (trace.merged_pairs[1].first == ev &&
-                 trace.merged_pairs[1].second != wr_ev) {
-
-          if (!addMutation(positive_annotation,
-              trace.merged_pairs[0].first, trace.merged_pairs[0].second)) {
-            return false;
-          }
-
-          // get the past cone of the events
-          auto past_annot
-            = currentPO.getPastConeAnnotation(positive_annotation,
-                                              {&trace.merged_pairs[0].first,
-                                               &trace.merged_pairs[0].second});
-          if (!addPastCone(past_annot, positive_annotation,
-                           trace.negative_annotation)) {
-            // return back the successor so that we can reuse the graph
-            return false;
-          }
-      }
-  }
-
-  return true;
-}
-*/
-
 void DCTraceBuilder::realizeUsingSwap(AnnotatedTrace& trace,
                                       PositiveAnnotation& positive_annotation,
                                       PositiveAnnotation& past_annot,
@@ -429,33 +347,10 @@ void DCTraceBuilder::realizeUsingSwap(AnnotatedTrace& trace,
 
   AnnotatedTrace new_trace;
   new_trace.trace = swapWithoutSAT(trace.trace, read_idx, write_idx);
-  //new_trace.last_annotated_read = DCIID(ev.cpid, ev.instruction, ev.order);
-  //new_trace.merged_pairs = trace.merged_pairs;
 
   auto tr = extendTrace(std::move(new_trace.trace));
   if (has_error())
     return;
-
-  // we extended the trace, now check whether we have some
-  // other trace that has the same observation function and if so,
-  // merge them
-  bool merged = false;
-  /*
-  if (should_merge_traces && new_trace.merged_pairs.size() == 0) {
-    auto obs1 = PositiveAnnotation::getObservationFunction(trace.trace);
-    for (auto& trace : traces) {
-      // for now, merge always only two branches, not more
-      if (trace.merged_pairs.size() != 0)
-        continue;
-
-      auto obs2 = PositiveAnnotation::getObservationFunction(tr);
-      if (obs1 == obs2) {
-        mergeTraces(trace, new_trace, positive_annotation);
-        merged = true;
-      }
-    }
-  }
-  */
 
   new_trace.negative_annotation
     = pruneNegativeAnnotation(positive_annotation,
@@ -467,14 +362,12 @@ void DCTraceBuilder::realizeUsingSwap(AnnotatedTrace& trace,
   addAnnotTreeNode(new_trace, "(swapped)");
 #endif
 
-  if (!merged) {
-    new_trace.trace = std::move(tr);
-    // recursively explore new traces
-    // we'll explore new traces after merging some of them,
-    // so just store the new trace now
-    //explore(new_trace);
-    traces.emplace_back(std::move(new_trace));
-  }
+  new_trace.trace = std::move(tr);
+  // recursively explore new traces
+  // we'll explore new traces after merging some of them,
+  // so just store the new trace now
+  //explore(new_trace);
+  traces.emplace_back(std::move(new_trace));
 
   updateNegativeAnnotation(trace.negative_annotation,
                            ev, wr_ev, past_annot);
@@ -498,8 +391,6 @@ bool DCTraceBuilder::trySwap(AnnotatedTrace& trace,
 
 
   if (!hasAnnotationFreeFutureCone(trace.trace, write_idx, read_idx, positive_annotation)) {
-    //trace.dump();
-    //positive_annotation.dump();
     return false;
   }
 
@@ -538,33 +429,10 @@ bool DCTraceBuilder::trySwap(AnnotatedTrace& trace,
 
   AnnotatedTrace new_trace;
   new_trace.trace = std::move(new_events_sequence);
-  //new_trace.last_annotated_read = DCIID(ev.cpid, ev.instruction, ev.order);
-  //new_trace.merged_pairs = trace.merged_pairs;
 
   auto tr = extendTrace(std::move(new_trace.trace));
   if (has_error())
     return true;
-
-  // we extended the trace, now check whether we have some
-  // other trace that has the same observation function and if so,
-  // merge them
-  bool merged = false;
-  /*
-  if (should_merge_traces && new_trace.merged_pairs.size() == 0) {
-    auto obs1 = PositiveAnnotation::getObservationFunction(trace.trace);
-    for (auto& trace : traces) {
-      // for now, merge always only two branches, not more
-      if (trace.merged_pairs.size() != 0)
-        continue;
-
-      auto obs2 = PositiveAnnotation::getObservationFunction(tr);
-      if (obs1 == obs2) {
-        mergeTraces(trace, new_trace, positive_annotation);
-        merged = true;
-      }
-    }
-  }
-  */
 
   new_trace.negative_annotation
     = pruneNegativeAnnotation(positive_annotation,
@@ -576,14 +444,12 @@ bool DCTraceBuilder::trySwap(AnnotatedTrace& trace,
   addAnnotTreeNode(new_trace, "(swapped)");
 #endif
 
-  if (!merged) {
-    new_trace.trace = std::move(tr);
-    // recursively explore new traces
-    // we'll explore new traces after merging some of them,
-    // so just store the new trace now
-    //explore(new_trace);
-    traces.emplace_back(std::move(new_trace));
-  }
+  new_trace.trace = std::move(tr);
+  // recursively explore new traces
+  // we'll explore new traces after merging some of them,
+  // so just store the new trace now
+  //explore(new_trace);
+  traces.emplace_back(std::move(new_trace));
 
   updateNegativeAnnotation(trace.negative_annotation,
                            ev, wr_ev, past_annot);
@@ -666,11 +532,9 @@ void DCTraceBuilder::tryRealizeMutation(HappensAfterGraph& currentPO,
          && "Did not annotated all that we need");
 
   AnnotatedTrace new_trace;
-  //new_trace.last_annotated_read = DCIID(ev.cpid, ev.instruction, ev.order);
   new_trace.positive_annotation = std::move(positive_annotation);
   new_trace.negative_annotation = trace.negative_annotation;
   new_trace.happens_before = trace.happens_before;
-  //new_trace.merged_pairs = trace.merged_pairs;
 
   // realize the new trace (if it is possible)
   if (realize(new_trace, basis)) {
@@ -1094,8 +958,6 @@ bool DCTraceBuilder::tryRealizeMutationToInit(int read_idx,
 
 void DCTraceBuilder::explore(AnnotatedTrace& trace)
 {
-  //llvm::errs() << "EXPLORING\n";
-  //trace.dump();
   // FIXME: make the following three things be computed at once, by one
   // traversal of the trace
   PositiveAnnotation observation = PositiveAnnotation::getObservationFunction(trace.trace);
@@ -1235,15 +1097,7 @@ bool DCTraceBuilder::realize(AnnotatedTrace& trace, Basis& basis)
 
 void DCTraceBuilder::initializeHappensBefore(AnnotatedTrace& trace, Basis& basis) {
   // this gives some constrains induced by annotation
-  //std::map<CPid, unsigned> cpid_to_index;
   std::vector<std::map<const llvm::Instruction *, unsigned>> instrs_to_index;
-  //unsigned idx = 0;
-  // create a mapping from cpids to basis
-  // XXX: we could do this in the Basis class (lazily) and
-  // have a method for this mapping, sth. like getProcess(CPid&)
-  // and getProcessIdx(CPid&)
-  // for (auto& base : basis)
-  //   cpid_to_index[base[0]->cpid] = idx++;
 
   for (auto it = basis.events_begin(), end = basis.events_end(); it != end; ++it) {
     // we want to work only with threads that are non-observatioanlly equivalent
@@ -1381,28 +1235,7 @@ bool DCTraceBuilder::tryRealizeAnnotations(AnnotatedTrace& trace,
     return false;
   }
 
-  // we extended the trace, now check whether we have some
-  // other trace that has the same observation function
-  /*
-  if (should_merge_traces && trace.merged_pairs.size() == 0) {
-    for (auto& trace1 : traces) {
-      // for now, merge always only two branches, not more
-      if (trace1.merged_pairs.size() != 0)
-        continue;
-
-      auto obs1 = PositiveAnnotation::getObservationFunction(trace1.trace);
-      auto obs2 = PositiveAnnotation::getObservationFunction(tr);
-      if (obs1 == obs2) {
-        // instead of adding a new trace, just merge this one
-        mergeTraces(trace1, new_trace, trace.positive_annotation);
-        return true;
-      }
-    }
-  }
-  */
-
   new_trace.trace = std::move(tr);
-  //explore(new_trace);
   traces.emplace_back(std::move(new_trace));
 
   return true;
@@ -1426,7 +1259,6 @@ bool DCTraceBuilder::reset()
   llvm::dbgs() << "Executed traces: " << executed_traces + 1 << "\n";
   llvm::dbgs() << "Explored observation functions num: " << leaves_number + 1
                << " (whole " << succ_leaves_number + 1 << ")\n";
-  llvm::dbgs() << "In those runs executed instructions num: " << instr_executed << "\n";
   llvm::dbgs() << "Blocked due to past cone: " << blocked_past << "\n";
   llvm::dbgs() << "Blocked due to past cones (2): " << blocked_past2 << "\n";
   llvm::dbgs() << "Blocked before mutation: " << blocked_in_mutation << "\n";
@@ -1436,7 +1268,6 @@ bool DCTraceBuilder::reset()
   llvm::dbgs() << "Realized using direct swap: " << realized_using_swap << "\n";
   llvm::dbgs() << "Tried realizing annotations: " << realize_called << "("
                << realize_succeeded << " succeeded)\n";
-  llvm::dbgs() << "Merged traces: " << merged_traces << "\n";
 
 #ifdef DUMP_ANNOT_TREE
     annot_tree.dump();

@@ -62,8 +62,6 @@ class DCTraceBuilder : public TSOTraceBuilder {
   unsigned executed_traces = 0;
   unsigned leaves_number = 0;
   unsigned succ_leaves_number = 0;
-  // executed instructions in final leaves
-  unsigned instr_executed = 0;
   // number of unrealizable traces that were
   // identified to be unrealizable before
   // reducing to SAT
@@ -77,7 +75,6 @@ class DCTraceBuilder : public TSOTraceBuilder {
   unsigned realize_called = 0;
   unsigned realize_succeeded = 0;
   unsigned realized_using_swap = 0;
-  unsigned merged_traces = 0;
 
   const Configuration &config;
   llvm::Module *M;
@@ -98,8 +95,6 @@ class DCTraceBuilder : public TSOTraceBuilder {
   // (arbitrary) maximal trace
   bool getting_maximal_extension;
   bool getting_initial_trace;
-  // should we merge traces
-  bool should_merge_traces = false;
 
   Trace *error_trace = nullptr;
 
@@ -111,10 +106,6 @@ class DCTraceBuilder : public TSOTraceBuilder {
   // call itself on realized traces. Return an error trace
   // if found any or nullptr.
   void explore(AnnotatedTrace& trace);
-
-  void mergeTraces(AnnotatedTrace& trace,
-                   AnnotatedTrace& trace2,
-                   const PositiveAnnotation& annot);
 
   std::vector<DCEvent> extendCurrentTrace();
   // extend current annotated trace (the extension is stored
@@ -232,15 +223,12 @@ public:
 
   virtual void executing_instruction(const llvm::Instruction *Instr) {
     current_inst = Instr;
-    ++instr_executed;
 
     unsigned p = curnode().iid.get_pid();
     curnode().order = threads[p].clock[p];
-
   }
 
   /* for debugging */
-  //void setValue(int v) { curnode().val = v; }
   virtual bool has_error() const { return (error_trace != nullptr)
                                             || (errors.size() > 0); };
 
